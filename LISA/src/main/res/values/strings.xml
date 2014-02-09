@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">L.I.S.A</string>
+
+    <string name="action_settings">Settings</string>
+    <string name="action_help">Help</string>
+
+    <string name="pref_settings">LISA Settings</string>
+    <string name="labelIP">LISA Server Host</string>
+    <string name="labelPort">LISA Server Port</string>
+    <string name="labelZone">Client Zone</string>
+    <string name="pref_sum_ip">Set your IP</string>
+    <string name="pref_sum_port">Set your port</string>
+    <string name="pref_sum_zone">Set the zone of the client</string>
+    <string name="defaultIP">demo.lisa-project.net</string>
+    <integer name="defaultPort">10042</integer>
+
+    <string name="send">Send</string>
+    <string name="speak">Speak</string>
+</resources>
