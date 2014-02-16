@@ -178,13 +178,12 @@ public class MainActivity extends Activity implements OnInitListener {
 
         switch (requestCode) {
             case RESULT_SPEECH: {
-                if (resultCode == RESULT_OK && null != data) {
-
+                if (null != data) {
+                    // I don't know why resultCode = -1 .. as I correctly get the data ...
                     ArrayList<String> text = data
                             .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-
                     editText.setText(text.get(0));
-                    send.performClick();
+                    //send.performClick();
                     if (flag == true) {
                         startService(new Intent(MainActivity.this, com.seraf.lisa.services.SpeechActivationService.class));
                         flag = false;
