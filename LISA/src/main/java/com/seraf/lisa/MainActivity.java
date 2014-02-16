@@ -22,13 +22,14 @@ import android.content.Context;
 import android.content.ActivityNotFoundException;
 
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.TextToSpeech.OnInitListener;
 import android.widget.Toast;
 
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.EditText;
 
-public class MainActivity extends Activity implements TextToSpeech.OnInitListener {
+public class MainActivity extends Activity implements OnInitListener {
     protected static final int RESULT_SPEECH = 1;
     public static final int VOICE_RECOGNITION_REQUEST_CODE = 1234;
     protected static final int MY_DATA_CHECK_CODE = 0;
@@ -85,8 +86,11 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
             startService(new Intent(MainActivity.this, com.seraf.lisa.services.SpeechActivationService.class));
             flag = false;
         }
+    }
 
-
+    @Override
+    protected void onStart(){
+        super.onStart();
         Intent checkIntent = new Intent();
         checkIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
         startActivityForResult(checkIntent, MY_DATA_CHECK_CODE);
@@ -128,14 +132,15 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
 
             @Override
             public void onClick(View v) {
-
-                Intent intent = new Intent(
+                flag = true;
+                stopService(new Intent(MainActivity.this, com.seraf.lisa.services.SpeechActivationService.class));
+                Intent reco_intent = new Intent(
                         RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
 
-                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, "fr");
+                reco_intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, "fr-FR");
 
                 try {
-                    startActivityForResult(intent, RESULT_SPEECH);
+                    startActivityForResult(reco_intent, RESULT_SPEECH);
                     editText.setText("");
                 } catch (ActivityNotFoundException a) {
                     Toast t = Toast.makeText(getApplicationContext(),
@@ -145,9 +150,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
                 }
             }
         });
-
     }
-
     @Override
     public void onInit(int status) {
         if (status == TextToSpeech.SUCCESS) {
@@ -168,6 +171,11 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        Log.d("lisa","onActivityResult");
+        Log.d("lisa","requestcode :" + requestCode);
+        Log.d("lisa","resultCode :" + resultCode);
+        Log.d("lisa","data :" + data);
+
         switch (requestCode) {
             case RESULT_SPEECH: {
                 if (resultCode == RESULT_OK && null != data) {

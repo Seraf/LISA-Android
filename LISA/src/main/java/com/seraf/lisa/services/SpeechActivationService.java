@@ -228,13 +228,11 @@ public class SpeechActivationService extends Service
         @Override
         public void onReadyForSpeech(Bundle params)
         {
-            if (Build.VERSION.SDK_INT >= 16);//Build.VERSION_CODES.JELLY_BEAN)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
             {
+                mAudioManager.setStreamMute(AudioManager.STREAM_SYSTEM, false);
                 mIsCountDownOn = true;
                 mNoSpeechCountDown.start();
-                mAudioManager.setStreamMute(AudioManager.STREAM_SYSTEM, false);
-                mAudioManager.setStreamMute(AudioManager.STREAM_MUSIC, false);
-
             }
             Log.d("TESTING: SPEECH SERVICE", "onReadyForSpeech"); //$NON-NLS-1$
         }
@@ -246,7 +244,8 @@ public class SpeechActivationService extends Service
             Log.d(TAG, (String) data.get(0));
 
             if (data.get(0).contentEquals("Lisa")) {
-
+                mAudioManager.setStreamMute(AudioManager.STREAM_SYSTEM, false);
+                mAudioManager.setStreamMute(AudioManager.STREAM_MUSIC, false);
 
                 Intent i = new Intent();
                 i.setClass(getBaseContext(), com.seraf.lisa.MainActivity.class);
