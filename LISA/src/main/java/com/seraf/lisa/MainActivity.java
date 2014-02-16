@@ -3,6 +3,7 @@ package com.seraf.lisa;
 import android.app.Activity;
 import android.app.Fragment;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -20,44 +21,27 @@ import android.content.Context;
 
 import android.content.ActivityNotFoundException;
 
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.Bundle;
-import android.app.Activity;
-import android.app.ActivityManager;
-import android.app.ActivityManager.RunningServiceInfo;
-import android.app.AlertDialog;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View;
-import android.widget.SearchView;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.EditText;
 
 public class MainActivity extends Activity implements TextToSpeech.OnInitListener {
-    private static final int REQUEST_CODE = 1000;
-    private static final int VOICE_DATA_CHECK_CODE = 0;
     protected static final int RESULT_SPEECH = 1;
+    public static final int VOICE_RECOGNITION_REQUEST_CODE = 1234;
+    protected static final int MY_DATA_CHECK_CODE = 0;
 
+    public TextToSpeech myTTS;
     private boolean flag;
-    private static TextToSpeech TTS;
 
     private EditText editText;
     private Button send;
+    private Button btnSpeak;
     private ListView mList;
+    private ArrayList<String> arrayList;
+    private MyCustomAdapter mAdapter;
 
     // is it really dynamic ?
     Locale French = new Locale("fr");
@@ -72,17 +56,19 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         return false;
     }
 
-    private void voiceRecogniton() {
-
-        if (isSpeechServiceRunning()){
-            flag = true;
-            stopService(new Intent(MainActivity.this,com.seraf.lisa.services.SpeechActivationService.class));
+    @Override
+    public void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (!intent.hasExtra("TRIGGER")){
+            return;
         }
-
-        Intent intentGoogleVoice = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intentGoogleVoice.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        intentGoogleVoice.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH);
-        startActivityForResult(intentGoogleVoice, REQUEST_CODE);
+        else {
+            if (isSpeechServiceRunning()){
+                flag = true;
+                stopService(new Intent(MainActivity.this,com.seraf.lisa.services.SpeechActivationService.class));
+            }
+            btnSpeak.performClick();
+        }
     }
 
     @Override
@@ -100,71 +86,125 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
             flag = false;
         }
 
+
+        Intent checkIntent = new Intent();
+        checkIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
+        startActivityForResult(checkIntent, MY_DATA_CHECK_CODE);
+
+        arrayList = new ArrayList<String>();
+
         editText = (EditText) findViewById(R.id.editText);
         send = (Button)findViewById(R.id.send_button);
 
-        Button btnSpeak = (Button) findViewById(R.id.speak_button);
+        //relate the listView from java to the one created in xml
+        mList = (ListView)findViewById(R.id.list);
+        mAdapter = new MyCustomAdapter(this, arrayList);
+        Log.d("wtf", "listview: " + mList);
+        mList.setAdapter(mAdapter);
+
+        send.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                String message = editText.getText().toString();
+
+                //add the text in the arrayList
+                arrayList.add("> " + message);
+
+                //sends the message to the server
+                //if (mTcpClient != null) {
+                //    mTcpClient.sendMessage(message);
+                //}
+
+                //refresh the list
+                mAdapter.notifyDataSetChanged();
+                editText.setText("");
+            }
+        });
+
+        btnSpeak = (Button)findViewById(R.id.speak_button);
+
+        btnSpeak.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+
+                Intent intent = new Intent(
+                        RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, "fr");
+
+                try {
+                    startActivityForResult(intent, RESULT_SPEECH);
+                    editText.setText("");
+                } catch (ActivityNotFoundException a) {
+                    Toast t = Toast.makeText(getApplicationContext(),
+                            "Opps! Your device doesn't support Speech to Text",
+                            Toast.LENGTH_SHORT);
+                    t.show();
+                }
+            }
+        });
+
     }
 
     @Override
     public void onInit(int status) {
         if (status == TextToSpeech.SUCCESS) {
-            if (TTS.isLanguageAvailable(French) == TextToSpeech.LANG_AVAILABLE) ;
-            TTS.setLanguage(French);
-        } else if (status == TextToSpeech.ERROR) {
-            Toast.makeText(this, "There was an error with tts", Toast.LENGTH_LONG).show();
+            int result = myTTS.setLanguage(Locale.getDefault());
+
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Toast.makeText(MainActivity.this,
+                        "This Language is not supported", Toast.LENGTH_LONG).show();
+            }
         }
+        else if (status == TextToSpeech.ERROR) {
+            Toast.makeText(MainActivity.this,
+                    "Error occurred while initializing Text-To-Speech engine", Toast.LENGTH_LONG).show();
+        }
+
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == VOICE_DATA_CHECK_CODE) {
-            if (resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
-                TTS = new TextToSpeech(this, this);
-            } else {
-                Intent installTTS = new Intent();
-                installTTS.setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
-                startActivity(installTTS);
-            }
-        }
-
-        if (requestCode == REQUEST_CODE && resultCode == RESULT_OK) {
-            ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-            //SearchView.setQuery(matches.get(0), false);
-            Log.d("String Voz", matches.get(0));
-
-            if (flag == true) {
-                startService(new Intent(MainActivity.this, com.seraf.lisa.services.SpeechActivationService.class));
-                flag = false;
-            }
-        }
-
-        if (resultCode == RecognizerIntent.RESULT_AUDIO_ERROR) {
-            Log.e("Lisa", "Audio Error");
-            Toast.makeText(this, "Audio Error", Toast.LENGTH_LONG).show();
-        }
-
-        if (resultCode == RecognizerIntent.RESULT_CLIENT_ERROR) {
-            Log.e("Lisa", "Audio Error");
-            Toast.makeText(this, "Audio Error", Toast.LENGTH_LONG).show();
-        }
-
-        if (resultCode == RecognizerIntent.RESULT_NETWORK_ERROR) {
-            Log.e("Lisa", "Network Error");
-            Toast.makeText(this, "Network Error", Toast.LENGTH_LONG).show();
-        }
-
-        if (resultCode == RecognizerIntent.RESULT_SERVER_ERROR) {
-            Log.e("Lisa", "Server Error");
-            Toast.makeText(this, "Server Error", Toast.LENGTH_LONG).show();
-        }
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode) {
+            case RESULT_SPEECH: {
+                if (resultCode == RESULT_OK && null != data) {
+
+                    ArrayList<String> text = data
+                            .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+
+                    editText.setText(text.get(0));
+                    send.performClick();
+                    if (flag == true) {
+                        startService(new Intent(MainActivity.this, com.seraf.lisa.services.SpeechActivationService.class));
+                        flag = false;
+                    }
+                }
+                break;
+            }
+            case MY_DATA_CHECK_CODE: {
+                if (resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
+                    // the user has the necessary data - create the TTS
+                    myTTS = new TextToSpeech(this, this);
+                } else {
+                    // no data - install it now
+                    Intent installTTSIntent = new Intent();
+                    installTTSIntent
+                            .setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+                    startActivity(installTTSIntent);
+                }
+                break;
+            }
+        }
+
     }
 
     @Override
     protected void onDestroy() {
-        if (TTS != null) {
-            TTS.shutdown();
+        if (myTTS != null) {
+            myTTS.shutdown();
         }
         super.onDestroy();
     }

@@ -250,7 +250,9 @@ public class SpeechActivationService extends Service
 
                 Intent i = new Intent();
                 i.setClass(getBaseContext(), com.seraf.lisa.MainActivity.class);
-                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                i.putExtra("TRIGGER", "TRIGGER");
+                i.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP |
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(i);
 
             }
